@@ -25,14 +25,15 @@
 
 package org.openjdk.nashorn.internal.parser;
 
+import org.openjdk.nashorn.api.scripting.ScriptUtils;
 import org.openjdk.nashorn.internal.codegen.CompilerConstants;
 import org.openjdk.nashorn.internal.codegen.Namespace;
 import org.openjdk.nashorn.internal.ir.Module;
 import org.openjdk.nashorn.internal.ir.*;
 import org.openjdk.nashorn.internal.ir.debug.ASTWriter;
 import org.openjdk.nashorn.internal.ir.debug.PrintVisitor;
-import org.openjdk.nashorn.internal.ir.visitor.FunctionTrapVisitor;
 import org.openjdk.nashorn.internal.ir.visitor.NodeVisitor;
+import org.openjdk.nashorn.internal.ir.visitor.TrapFunctionVisitor;
 import org.openjdk.nashorn.internal.runtime.*;
 import org.openjdk.nashorn.internal.runtime.linker.NameCodec;
 import org.openjdk.nashorn.internal.runtime.logging.DebugLogger;
@@ -42,8 +43,6 @@ import org.openjdk.nashorn.internal.runtime.logging.Logger;
 import java.io.Serializable;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.openjdk.nashorn.internal.codegen.CompilerConstants.*;
 import static org.openjdk.nashorn.internal.parser.TokenType.*;
@@ -119,15 +118,14 @@ public class Parser extends AbstractParser implements Loggable {
         super(source, errors, strict, lineOffset);
 
         // Disable/enable trap injection
-        Matcher matcher = FunctionTrapVisitor.TRAP_FUNCTION_PRAGMA_PATTERN.matcher(new String(source.getContent()));
+        String trapFunctionName = ScriptUtils.getDefinedTrapFunction(source);
 
-        if (matcher.find() && matcher.groupCount() == 3) {
-             this.injectTrapFunctionCalls = true;
-             this.trapName = matcher.group(2);
-             log.info("Detected trap_function pragma, function=" + trapName);
+        if (trapFunctionName != null) {
+            this.injectTrapFunctionCalls = true;
+            this.trapName = trapFunctionName;
         } else {
-             this.injectTrapFunctionCalls = false;
-             this.trapName = null;
+            this.injectTrapFunctionCalls = false;
+            this.trapName = null;
         }
 
         this.lc = new ParserContext();
@@ -232,7 +230,7 @@ public class Parser extends AbstractParser implements Loggable {
             FunctionNode functionNode = program(scriptName, reparseFlags);
 
             if (injectTrapFunctionCalls) {
-                return  (FunctionNode) functionNode.accept(new FunctionTrapVisitor(trapName));
+                return  (FunctionNode) functionNode.accept(new TrapFunctionVisitor(trapName));
             }
             return functionNode;
         } catch (final Exception e) {
