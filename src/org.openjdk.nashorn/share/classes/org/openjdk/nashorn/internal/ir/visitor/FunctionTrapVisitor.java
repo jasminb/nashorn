@@ -3,6 +3,7 @@ package org.openjdk.nashorn.internal.ir.visitor;
 import org.openjdk.nashorn.internal.ir.*;
 
 import java.util.Collections;
+import java.util.regex.Pattern;
 
 /**
  * Injects custom code block (function) into several different parsed JS AST nodes.
@@ -10,6 +11,12 @@ import java.util.Collections;
  * <p/>
  */
 public class FunctionTrapVisitor extends SimpleNodeVisitor {
+
+    // Captures pragma such as 'trap_function my_function';
+    public static final Pattern TRAP_FUNCTION_PRAGMA_PATTERN = Pattern.compile(
+            "(\"|')trap_function\\s([A-Za-z_\\-0-9]+)(\"|');"
+    );
+    public static String TRAP_PRAGMA = "trap_function";
     private final String trapName;
 
     public FunctionTrapVisitor(String trapName) {
@@ -60,7 +67,7 @@ public class FunctionTrapVisitor extends SimpleNodeVisitor {
 
     private boolean hasInterrupt(Block block) {
         return block.getStatements().stream()
-                .filter(s -> !s.toString().contains("trap_function"))
+                .filter(s -> !s.toString().contains(TRAP_PRAGMA))
                 .anyMatch(s -> s.toString().contains(trapName));
     }
 

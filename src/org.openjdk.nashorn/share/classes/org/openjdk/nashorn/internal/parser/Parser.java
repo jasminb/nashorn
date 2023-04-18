@@ -57,8 +57,6 @@ public class Parser extends AbstractParser implements Loggable {
     private static final String CONSTRUCTOR_NAME = "constructor";
     private static final String GET_NAME = "get";
     private static final String SET_NAME = "set";
-
-    private static final Pattern TRAP_FUNCTION_PATTERN = Pattern.compile("(\"|')trap_function=([A-Za-z]+)(\"|');");
     /** Current env. */
     private final ScriptEnvironment env;
 
@@ -121,12 +119,12 @@ public class Parser extends AbstractParser implements Loggable {
         super(source, errors, strict, lineOffset);
 
         // Disable/enable trap injection
-        Matcher matcher = TRAP_FUNCTION_PATTERN.matcher(new String(source.getContent()));
+        Matcher matcher = FunctionTrapVisitor.TRAP_FUNCTION_PRAGMA_PATTERN.matcher(new String(source.getContent()));
 
         if (matcher.find() && matcher.groupCount() == 3) {
              this.injectTrapFunctionCalls = true;
              this.trapName = matcher.group(2);
-             log.info("Function trap injection enabled, trap_function=" + trapName);
+             log.info("Detected trap_function pragma, function=" + trapName);
         } else {
              this.injectTrapFunctionCalls = false;
              this.trapName = null;
