@@ -25,133 +25,28 @@
 
 package org.openjdk.nashorn.internal.parser;
 
-import static org.openjdk.nashorn.internal.codegen.CompilerConstants.ANON_FUNCTION_PREFIX;
-import static org.openjdk.nashorn.internal.codegen.CompilerConstants.EVAL;
-import static org.openjdk.nashorn.internal.codegen.CompilerConstants.PROGRAM;
-import static org.openjdk.nashorn.internal.parser.TokenType.ARROW;
-import static org.openjdk.nashorn.internal.parser.TokenType.ASSIGN;
-import static org.openjdk.nashorn.internal.parser.TokenType.CASE;
-import static org.openjdk.nashorn.internal.parser.TokenType.CATCH;
-import static org.openjdk.nashorn.internal.parser.TokenType.CLASS;
-import static org.openjdk.nashorn.internal.parser.TokenType.COLON;
-import static org.openjdk.nashorn.internal.parser.TokenType.COMMARIGHT;
-import static org.openjdk.nashorn.internal.parser.TokenType.COMMENT;
-import static org.openjdk.nashorn.internal.parser.TokenType.CONST;
-import static org.openjdk.nashorn.internal.parser.TokenType.DECPOSTFIX;
-import static org.openjdk.nashorn.internal.parser.TokenType.DECPREFIX;
-import static org.openjdk.nashorn.internal.parser.TokenType.ELLIPSIS;
-import static org.openjdk.nashorn.internal.parser.TokenType.ELSE;
-import static org.openjdk.nashorn.internal.parser.TokenType.EOF;
-import static org.openjdk.nashorn.internal.parser.TokenType.EOL;
-import static org.openjdk.nashorn.internal.parser.TokenType.EQ_STRICT;
-import static org.openjdk.nashorn.internal.parser.TokenType.ESCSTRING;
-import static org.openjdk.nashorn.internal.parser.TokenType.EXPORT;
-import static org.openjdk.nashorn.internal.parser.TokenType.EXTENDS;
-import static org.openjdk.nashorn.internal.parser.TokenType.FINALLY;
-import static org.openjdk.nashorn.internal.parser.TokenType.FUNCTION;
-import static org.openjdk.nashorn.internal.parser.TokenType.IDENT;
-import static org.openjdk.nashorn.internal.parser.TokenType.IF;
-import static org.openjdk.nashorn.internal.parser.TokenType.IMPORT;
-import static org.openjdk.nashorn.internal.parser.TokenType.INCPOSTFIX;
-import static org.openjdk.nashorn.internal.parser.TokenType.LBRACE;
-import static org.openjdk.nashorn.internal.parser.TokenType.LBRACKET;
-import static org.openjdk.nashorn.internal.parser.TokenType.LET;
-import static org.openjdk.nashorn.internal.parser.TokenType.LPAREN;
-import static org.openjdk.nashorn.internal.parser.TokenType.MUL;
-import static org.openjdk.nashorn.internal.parser.TokenType.PERIOD;
-import static org.openjdk.nashorn.internal.parser.TokenType.RBRACE;
-import static org.openjdk.nashorn.internal.parser.TokenType.RBRACKET;
-import static org.openjdk.nashorn.internal.parser.TokenType.RPAREN;
-import static org.openjdk.nashorn.internal.parser.TokenType.SEMICOLON;
-import static org.openjdk.nashorn.internal.parser.TokenType.SPREAD_ARRAY;
-import static org.openjdk.nashorn.internal.parser.TokenType.STATIC;
-import static org.openjdk.nashorn.internal.parser.TokenType.STRING;
-import static org.openjdk.nashorn.internal.parser.TokenType.SUPER;
-import static org.openjdk.nashorn.internal.parser.TokenType.TEMPLATE;
-import static org.openjdk.nashorn.internal.parser.TokenType.TEMPLATE_HEAD;
-import static org.openjdk.nashorn.internal.parser.TokenType.TEMPLATE_MIDDLE;
-import static org.openjdk.nashorn.internal.parser.TokenType.TEMPLATE_TAIL;
-import static org.openjdk.nashorn.internal.parser.TokenType.TERNARY;
-import static org.openjdk.nashorn.internal.parser.TokenType.VAR;
-import static org.openjdk.nashorn.internal.parser.TokenType.VOID;
-import static org.openjdk.nashorn.internal.parser.TokenType.WHILE;
-import static org.openjdk.nashorn.internal.parser.TokenType.YIELD;
-import static org.openjdk.nashorn.internal.parser.TokenType.YIELD_STAR;
-
-import java.io.Serializable;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Consumer;
 import org.openjdk.nashorn.internal.codegen.CompilerConstants;
 import org.openjdk.nashorn.internal.codegen.Namespace;
-import org.openjdk.nashorn.internal.ir.AccessNode;
-import org.openjdk.nashorn.internal.ir.BaseNode;
-import org.openjdk.nashorn.internal.ir.BinaryNode;
-import org.openjdk.nashorn.internal.ir.Block;
-import org.openjdk.nashorn.internal.ir.BlockStatement;
-import org.openjdk.nashorn.internal.ir.BreakNode;
-import org.openjdk.nashorn.internal.ir.CallNode;
-import org.openjdk.nashorn.internal.ir.CaseNode;
-import org.openjdk.nashorn.internal.ir.CatchNode;
-import org.openjdk.nashorn.internal.ir.ClassNode;
-import org.openjdk.nashorn.internal.ir.ContinueNode;
-import org.openjdk.nashorn.internal.ir.DebuggerNode;
-import org.openjdk.nashorn.internal.ir.EmptyNode;
-import org.openjdk.nashorn.internal.ir.ErrorNode;
-import org.openjdk.nashorn.internal.ir.Expression;
-import org.openjdk.nashorn.internal.ir.ExpressionList;
-import org.openjdk.nashorn.internal.ir.ExpressionStatement;
-import org.openjdk.nashorn.internal.ir.ForNode;
-import org.openjdk.nashorn.internal.ir.FunctionNode;
-import org.openjdk.nashorn.internal.ir.IdentNode;
-import org.openjdk.nashorn.internal.ir.IfNode;
-import org.openjdk.nashorn.internal.ir.IndexNode;
-import org.openjdk.nashorn.internal.ir.JoinPredecessorExpression;
-import org.openjdk.nashorn.internal.ir.LabelNode;
-import org.openjdk.nashorn.internal.ir.LexicalContext;
-import org.openjdk.nashorn.internal.ir.LiteralNode;
 import org.openjdk.nashorn.internal.ir.Module;
-import org.openjdk.nashorn.internal.ir.Node;
-import org.openjdk.nashorn.internal.ir.ObjectNode;
-import org.openjdk.nashorn.internal.ir.PropertyKey;
-import org.openjdk.nashorn.internal.ir.PropertyNode;
-import org.openjdk.nashorn.internal.ir.ReturnNode;
-import org.openjdk.nashorn.internal.ir.RuntimeNode;
-import org.openjdk.nashorn.internal.ir.Statement;
-import org.openjdk.nashorn.internal.ir.SwitchNode;
-import org.openjdk.nashorn.internal.ir.TemplateLiteral;
-import org.openjdk.nashorn.internal.ir.TernaryNode;
-import org.openjdk.nashorn.internal.ir.ThrowNode;
-import org.openjdk.nashorn.internal.ir.TryNode;
-import org.openjdk.nashorn.internal.ir.UnaryNode;
-import org.openjdk.nashorn.internal.ir.VarNode;
-import org.openjdk.nashorn.internal.ir.WhileNode;
-import org.openjdk.nashorn.internal.ir.WithNode;
+import org.openjdk.nashorn.internal.ir.*;
 import org.openjdk.nashorn.internal.ir.debug.ASTWriter;
 import org.openjdk.nashorn.internal.ir.debug.PrintVisitor;
+import org.openjdk.nashorn.internal.ir.visitor.FunctionTrapVisitor;
 import org.openjdk.nashorn.internal.ir.visitor.NodeVisitor;
-import org.openjdk.nashorn.internal.runtime.Context;
-import org.openjdk.nashorn.internal.runtime.ErrorManager;
-import org.openjdk.nashorn.internal.runtime.JSErrorType;
-import org.openjdk.nashorn.internal.runtime.ParserException;
-import org.openjdk.nashorn.internal.runtime.RecompilableScriptFunctionData;
-import org.openjdk.nashorn.internal.runtime.ScriptEnvironment;
-import org.openjdk.nashorn.internal.runtime.ScriptFunctionData;
-import org.openjdk.nashorn.internal.runtime.ScriptingFunctions;
-import org.openjdk.nashorn.internal.runtime.Source;
-import org.openjdk.nashorn.internal.runtime.Timing;
+import org.openjdk.nashorn.internal.runtime.*;
 import org.openjdk.nashorn.internal.runtime.linker.NameCodec;
 import org.openjdk.nashorn.internal.runtime.logging.DebugLogger;
 import org.openjdk.nashorn.internal.runtime.logging.Loggable;
 import org.openjdk.nashorn.internal.runtime.logging.Logger;
+
+import java.io.Serializable;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.openjdk.nashorn.internal.codegen.CompilerConstants.*;
+import static org.openjdk.nashorn.internal.parser.TokenType.*;
 
 /**
  * Builds the IR.
@@ -163,6 +58,7 @@ public class Parser extends AbstractParser implements Loggable {
     private static final String GET_NAME = "get";
     private static final String SET_NAME = "set";
 
+    private static final Pattern TRAP_FUNCTION_PATTERN = Pattern.compile("(\"|')trap_function=([A-Za-z]+)(\"|');");
     /** Current env. */
     private final ScriptEnvironment env;
 
@@ -181,6 +77,9 @@ public class Parser extends AbstractParser implements Loggable {
 
     /** to receive line information from Lexer when scanning multine literals. */
     protected final Lexer.LineInfoReceiver lineInfoReceiver;
+
+    private final boolean injectTrapFunctionCalls;
+    private final String trapName;
 
     private RecompilableScriptFunctionData reparsedFunction;
 
@@ -220,6 +119,19 @@ public class Parser extends AbstractParser implements Loggable {
      */
     public Parser(final ScriptEnvironment env, final Source source, final ErrorManager errors, final boolean strict, final int lineOffset, final DebugLogger log) {
         super(source, errors, strict, lineOffset);
+
+        // Disable/enable trap injection
+        Matcher matcher = TRAP_FUNCTION_PATTERN.matcher(new String(source.getContent()));
+
+        if (matcher.find() && matcher.groupCount() == 3) {
+             this.injectTrapFunctionCalls = true;
+             this.trapName = matcher.group(2);
+             log.info("Function trap injection enabled, trap_function=" + trapName);
+        } else {
+             this.injectTrapFunctionCalls = false;
+             this.trapName = null;
+        }
+
         this.lc = new ParserContext();
         this.defaultNames = new ArrayDeque<>();
         this.env = env;
@@ -319,7 +231,12 @@ public class Parser extends AbstractParser implements Loggable {
 
             scanFirstToken();
             // Begin parse.
-            return program(scriptName, reparseFlags);
+            FunctionNode functionNode = program(scriptName, reparseFlags);
+
+            if (injectTrapFunctionCalls) {
+                return  (FunctionNode) functionNode.accept(new FunctionTrapVisitor(trapName));
+            }
+            return functionNode;
         } catch (final Exception e) {
             handleParseException(e);
 
