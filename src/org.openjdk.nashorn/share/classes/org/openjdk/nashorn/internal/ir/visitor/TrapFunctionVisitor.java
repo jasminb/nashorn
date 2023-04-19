@@ -19,7 +19,7 @@ public class TrapFunctionVisitor extends SimpleNodeVisitor {
 
     @Override
     public Node leaveWhileNode(WhileNode node) {
-        if (hasInterrupt(node.getBody())) {
+        if (hasTrap(node.getBody())) {
             return node;
         }
         return node.setBody(
@@ -30,7 +30,7 @@ public class TrapFunctionVisitor extends SimpleNodeVisitor {
 
     @Override
     public Node leaveForNode(ForNode node) {
-        if (hasInterrupt(node.getBody())) {
+        if (hasTrap(node.getBody())) {
             return node;
         }
         return node.setBody(
@@ -41,7 +41,7 @@ public class TrapFunctionVisitor extends SimpleNodeVisitor {
 
     @Override
     public Node leaveFunctionNode(FunctionNode node) {
-        if (hasInterrupt(node.getBody())) {
+        if (hasTrap(node.getBody())) {
             return node;
         }
 
@@ -59,7 +59,7 @@ public class TrapFunctionVisitor extends SimpleNodeVisitor {
         );
     }
 
-    private boolean hasInterrupt(Block block) {
+    private boolean hasTrap(Block block) {
         return block.getStatements().stream()
                 .filter(s -> !ScriptUtils.containsTrapPragma(s.toString()))
                 .anyMatch(s -> s.toString().contains(trapName));
