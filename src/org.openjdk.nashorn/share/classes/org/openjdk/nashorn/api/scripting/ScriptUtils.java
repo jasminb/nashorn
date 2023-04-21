@@ -25,14 +25,14 @@
 
 package org.openjdk.nashorn.api.scripting;
 
-import java.lang.invoke.MethodHandle;
 import jdk.dynalink.beans.StaticClass;
 import jdk.dynalink.linker.LinkerServices;
-import org.openjdk.nashorn.internal.runtime.Context;
-import org.openjdk.nashorn.internal.runtime.ScriptFunction;
-import org.openjdk.nashorn.internal.runtime.ScriptObject;
-import org.openjdk.nashorn.internal.runtime.ScriptRuntime;
+import org.openjdk.nashorn.internal.runtime.*;
 import org.openjdk.nashorn.internal.runtime.linker.Bootstrap;
+
+import java.lang.invoke.MethodHandle;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Utilities that are to be called from script code.
@@ -40,6 +40,11 @@ import org.openjdk.nashorn.internal.runtime.linker.Bootstrap;
  * @since 1.8u40
  */
 public final class ScriptUtils {
+    private static final Pattern TRAP_PRAGMA_PATTERN = Pattern.compile(
+            "(\"|')trap_function\\s([A-Za-z_\\-0-9]+)(\"|');"
+    );
+    private static String TRAP_PRAGMA = "trap_function";
+
     private ScriptUtils() {}
 
     /**
@@ -184,5 +189,45 @@ public final class ScriptUtils {
         } catch (final Throwable t) {
             throw new RuntimeException(t);
         }
+    }
+
+    /**
+     * Creates trap-function pragma using provided function name.
+     *
+     * @param functionName {@link String} function pragma
+     * @return {@link String} e.g. for input=myFunction -> 'trap_function myFunction';
+     */
+    public static String createTrapFunctionPragma(String functionName) {
+        return "'" + TRAP_PRAGMA + " " + functionName + "';";
+    }
+
+    /**
+     * Attempts to extract the trap pragma function name from the provided source.
+     *
+     * @param source {@link Source}
+     * @return {@link String} function name or null in case pragma is not defined
+     */
+    public static String getDefinedTrapFunction(Source source) {
+        return extractTrapFunction(new String(source.getContent()));
+    }
+
+    private static String extractTrapFunction(String source) {
+        Matcher matcher = ScriptUtils.TRAP_PRAGMA_PATTERN.matcher(source);
+
+        if (matcher.find() && matcher.groupCount() == 3) {
+            return matcher.group(2);
+        }
+
+        return null;
+    }
+
+    /**
+     * Checks if string representation of a statement has a trap pragma expression in it.
+     *
+     * @param statement {@link String} statement
+     * @return {@link Boolean}
+     */
+    public static boolean containsTrapPragma(String statement) {
+        return extractTrapFunction(statement + ";") != null;
     }
 }
